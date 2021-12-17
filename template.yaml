@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SFDC Consent mgmt pipeline
+Resources:
+  SFDCIntegrationLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: layers/Python
+    Metadata:
+      BuildMethod: python3.9
+  MktgConsentMGMTSFDCImportTransform:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: MKTG-Consent-SFDC-Transform
+      CodeUri: SFDC-1-TransformFile/
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Description: ''
+      MemorySize: 512
+      Timeout: 843
+      Tags:
+        project: consent-mgmt
+      Layers:
+        - !Ref SFDCIntegrationLayer
+  MktgConsentMGMTSFDCImportLoad:
+      Type: 'AWS::Serverless::Function'
+      Properties:
+        FunctionName: MKTG-Consent-SFDC-Load
+        Handler: lambda_function.lambda_handler
+        Runtime: python3.9
+        CodeUri: SFDC-2-LoadFile/
+        Description: ''
+        MemorySize: 512
+        Timeout: 900
+        Events:
+          SNSEvent:
+            Type: SNS
+            Properties:
+              Topic: arn:aws:sns:us-east-1:010407143993:consent-sfdc-apiready
+              SqsSubscription: false
+        Environment:
+          Variables:
+            test: '{"test":1,"test2":2}'
+        Tags:
+          project: consent-mgmt
+        Layers:
+          - !Ref SFDCIntegrationLayer
+  MktgConsentMGMTSFDCImportPoll:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: MKTG-Consent-SFDC-Poll
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      CodeUri: SFDC-3-PollImport/
+      Description: ''
+      MemorySize: 512
+      Timeout: 783
+      Tags:
+        project: consent-mgmt
+      Layers:
+        - !Ref SFDCIntegrationLayer
